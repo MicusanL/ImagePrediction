@@ -34,6 +34,8 @@
  * nuclear facility.
  */
 
+import bitreaderwriter.BitWriter;
+
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -51,7 +53,7 @@ public class Coding extends Component {
     private int predictionType;
     private BufferedImage originalPicture, reconstructedPicture, errorColorPicture, biFiltered;
 
-    int w, h;
+    private int w, h;
 
 
     public Coding(File imgFile, int predictionType) {
@@ -81,7 +83,7 @@ public class Coding extends Component {
         return new Dimension(w, h);
     }
 
-    WritableRaster originalPictureWriter;
+    private WritableRaster originalPictureWriter;
 
     private int getGrayScale(int[] rgb) {
         return (rgb[0] + rgb[1] + rgb[2]) / 3;
@@ -136,6 +138,30 @@ public class Coding extends Component {
         return errorMatrix;
     }
 
+    private void writeByteValue(int value, BitWriter bitWriterInstance) {
+
+        int byteValue;
+        int absValue = Math.abs(value);
+
+        for (int i = 0; i <= 8; i++) {
+
+            int twoPowI = (int) Math.pow(2, i);
+
+            if (absValue <= Math.pow(2, i) - 1) {
+                if (value < 0) {
+                    byteValue = ((twoPowI - 1) << i + 1) | ((~absValue) & (twoPowI - 1) % twoPowI);
+
+                } else if (value > 0) {
+                    byteValue = ((twoPowI - 1) << i + 1) + value % twoPowI;
+                } else {
+                    byteValue = 0;
+                }
+                bitWriterInstance.WriteNBits(byteValue, i * 2 + 1);
+                return;
+            }
+        }
+    }
+
     private int[][] getPredictionMatrix() {
 
         originalPictureWriter = originalPicture.getRaster();
@@ -170,6 +196,38 @@ public class Coding extends Component {
         return predictionMatrix;
     }
 
+    private void writeCodedFile(String outputFile, int errorMatrix[][]) {
+        BitWriter bitWriterInstance = new BitWriter(outputFile);
+
+        bitWriterInstance.WriteNBits(predictionType, 4);
+        for (int i = 0; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
+            for (int j = 0; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
+                writeByteValue(errorMatrix[i][j], bitWriterInstance);
+            }
+        }
+      /*  writeHeader(bitWriterInstance, characterNumber);
+
+        BitReader bitReaderInstance = new BitReader(inputFile);
+        int bitsRemainToRead = bitReaderInstance.fileLength;
+
+        for (int i = 0; i < bitsRemainToRead; i++) {
+
+            int byteReaded = bitReaderInstance.ReadNBits(Constants.WORD_BITS_NUMBER);
+            int positionInArray = getCharacterPosition(byteReaded);
+
+            if (positionInArray == -1) {
+
+                System.err.println("Character not find in array!");
+            } else {
+
+                bitWriterInstance.WriteNBits(characterArray[positionInArray].codeVal,
+                        characterArray[positionInArray].codeBitsNumber);
+            }
+        }
+
+        bitWriterInstance.WriteNBits(0, Constants.WORD_BITS_NUMBER - 1);*/
+    }
+
     public void paint(Graphics g) {
 //        filterImage();
         double mat[][] = new double[8][8];
@@ -191,6 +249,9 @@ public class Coding extends Component {
             }
             System.out.println();
         }
+        writeCodedFile("test.txt",errorMatrix);
+
+
         // g.drawImage(reconstructedPicture, ORIGINAL_IMAGE_X + IMAGE_WIDTH + 50, ORIGINAL_IMAGE_Y, IMAGE_WIDTH, IMAGE_HEIGHT, null);
         g.drawImage(originalPicture, (Constant.ORIGINAL_IMAGE_X + Constant.IMAGE_WIDTH + 50) * 2,
                 Constant.ORIGINAL_IMAGE_Y, Constant.IMAGE_WIDTH, Constant.IMAGE_HEIGHT, null);

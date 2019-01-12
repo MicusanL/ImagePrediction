@@ -22,15 +22,13 @@ public class ShowConfiguration {
         frame.setVisible(true);
 
 
+
     }
 
 
-    public ShowConfiguration() {
+    private ShowConfiguration() {
 
-        buttonLoad.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        buttonLoad.addActionListener(e-> {
 
                 JFrame f = new JFrame("Image Prediction");
                 f.setExtendedState(f.getExtendedState() | JFrame.MAXIMIZED_BOTH);
@@ -39,7 +37,12 @@ public class ShowConfiguration {
                         System.exit(0);
                     }
                 });
-
+/*
+button.addActionListener(e -> {
+    System.out.println("Handled Lambda listener");
+    System.out.println("Have fun!");
+});
+ */
 
                 JFileChooser jfc = new JFileChooser();
                 int r = jfc.showOpenDialog(buttonLoad);
@@ -58,7 +61,6 @@ public class ShowConfiguration {
                 }
 
 
-            }
         });
     }
 }
