@@ -14,6 +14,7 @@ public class ShowConfiguration {
     private JPanel panel1;
     private static JFrame frame;
 
+
     public static void main(String[] args) {
         frame = new JFrame("UserInterface");
         frame.setContentPane(new ShowConfiguration().panel1);
@@ -29,10 +30,9 @@ public class ShowConfiguration {
     private ShowConfiguration() {
 
         buttonLoad.addActionListener(e-> {
-
-                JFrame f = new JFrame("Image Prediction");
-                f.setExtendedState(f.getExtendedState() | JFrame.MAXIMIZED_BOTH);
-                f.addWindowListener(new WindowAdapter() {
+ShowResult.frame = new JFrame("Image Prediction");
+            ShowResult.frame.setExtendedState(ShowResult.frame.getExtendedState() | JFrame.MAXIMIZED_BOTH);
+            ShowResult.frame.addWindowListener(new WindowAdapter() {
                     public void windowClosing(WindowEvent e) {
                         System.exit(0);
                     }
@@ -50,14 +50,11 @@ button.addActionListener(e -> {
                     Coding si = new Coding(jfc.getSelectedFile(), comboBoxPredictionType.getSelectedIndex());
 
                     frame.setVisible(false);
-                    f.add("Center", si);
-                    JPanel panel = new JPanel();
+                    ShowResult.frame.add("Center", si);
 
-                    panel.add(new JLabel("Save As"));
-
-                    f.add("South", panel);
-                    f.pack();
-                    f.setVisible(true);
+                    ShowResult.frame.add("South", new ShowResult().panel1);
+                    ShowResult.frame.pack();
+                    ShowResult.frame.setVisible(true);
                 }
 
 
