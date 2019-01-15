@@ -36,19 +36,15 @@
 
 import bitreaderwriter.BitWriter;
 
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Graphics;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import javax.imageio.ImageIO;
 
 public class Coding extends Component {
-
-
-    int opIndex;
+    private WritableRaster originalPictureWriter;
 
     private int predictionType;
     private BufferedImage originalPicture, reconstructedPicture, errorColorPicture, biFiltered;
@@ -79,17 +75,16 @@ public class Coding extends Component {
         }
     }
 
+    public Coding(int predictionType) {
+        this.predictionType = predictionType;
+    }
+
     public Dimension getPreferredSize() {
         return new Dimension(w, h);
     }
 
-    private WritableRaster originalPictureWriter;
 
-    private int getGrayScale(int[] rgb) {
-        return (rgb[0] + rgb[1] + rgb[2]) / 3;
-    }
-
-    private int predict(int a, int b, int c) {
+    public int predict(int a, int b, int c) {
         switch (predictionType) {
             case 1:
                 return a;
@@ -158,6 +153,13 @@ public class Coding extends Component {
                 } else {
                     byteValue = 0;
                 }
+                if (i * 2 + 1 > 17) {
+                    System.out.println("BV!!!!!!!!!!!!!!!!!! " + byteValue + " " + (i * 2 + 1));
+                } else  if (value < -255 || value > 255){
+                    System.out.println("VALUE!!!!!!!!!!!!!!!!!! " + byteValue + " " + (i * 2 + 1));
+                } else if(byteValue>130815){
+                    System.out.println("ByteVAl !!!!!!!!!!!!!!!!!! " + byteValue + " " + (i * 2 + 1));
+                }
                 bitWriterInstance.WriteNBits(byteValue, i * 2 + 1);
                 return;
             }
@@ -173,41 +175,38 @@ public class Coding extends Component {
         if (predictionType == 0) {
             for (int i = 0; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
                 for (int j = 0; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
-                    predictionMatrix[i][j][0] = 128;
-                    predictionMatrix[i][j][1] = 128;
-                    predictionMatrix[i][j][2] = 128;
+                    for (int k = 0; k < 3; k++) {
+                        predictionMatrix[i][j][k] = 128;
+                    }
                 }
             }
         } else {
-
-            predictionMatrix[0][0][0] = 128;
-            predictionMatrix[0][0][1] = 128;
-            predictionMatrix[0][0][2] = 128;
+            for (int k = 0; k < 3; k++) {
+                predictionMatrix[0][0][k] = 128;
+            }
 
             for (int i = 1; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
-                predictionMatrix[i][0][0] = originalPictureWriter.getPixel(i - 1, 0, (int[]) null)[0];
-                predictionMatrix[0][i][0] = originalPictureWriter.getPixel(0, i - 1, (int[]) null)[0];
-
-                predictionMatrix[i][0][1] = originalPictureWriter.getPixel(i - 1, 0, (int[]) null)[1];
-                predictionMatrix[0][i][1] = originalPictureWriter.getPixel(0, i - 1, (int[]) null)[1];
-
-                predictionMatrix[i][0][2] = originalPictureWriter.getPixel(i - 1, 0, (int[]) null)[2];
-                predictionMatrix[0][i][2] = originalPictureWriter.getPixel(0, i - 1, (int[]) null)[2];
+                for (int k = 0; k < 3; k++) {
+                    predictionMatrix[i][0][k] = originalPictureWriter.getPixel(i - 1, 0, (int[]) null)[k];
+                    predictionMatrix[0][i][k] = originalPictureWriter.getPixel(0, i - 1, (int[]) null)[k];
+                }
             }
 
             for (int i = 1; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
                 for (int j = 1; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
-                    predictionMatrix[i][j][0] = predict((originalPictureWriter.getPixel(i - 1, j, (int[]) null))[0],
-                            (originalPictureWriter.getPixel(i, j - 1, (int[]) null)[0]),
-                            (originalPictureWriter.getPixel(i - 1, j - 1, (int[]) null))[0]);
+                    for (int k = 0; k < 3; k++) {
+                        predictionMatrix[i][j][k] = predict(
+                                (originalPictureWriter.getPixel(i - 1, j, (int[]) null)[k]),
+                                (originalPictureWriter.getPixel(i, j - 1, (int[]) null))[k],
+                                (originalPictureWriter.getPixel(i - 1, j - 1, (int[]) null))[k]);
+                        if (predictionMatrix[i][j][k] < 0) {
+                            predictionMatrix[i][j][k] = 0;
+                        } else if (predictionMatrix[i][j][k] > 255) {
+                            predictionMatrix[i][j][k] = 255;
+                        }
 
-                    predictionMatrix[i][j][1] = predict((originalPictureWriter.getPixel(i - 1, j, (int[]) null))[1],
-                            (originalPictureWriter.getPixel(i, j - 1, (int[]) null)[1]),
-                            (originalPictureWriter.getPixel(i - 1, j - 1, (int[]) null))[1]);
 
-                    predictionMatrix[i][j][2] = predict((originalPictureWriter.getPixel(i - 1, j, (int[]) null))[2],
-                            (originalPictureWriter.getPixel(i, j - 1, (int[]) null)[2]),
-                            (originalPictureWriter.getPixel(i - 1, j - 1, (int[]) null))[2]);
+                    }
                 }
             }
         }
@@ -227,31 +226,19 @@ public class Coding extends Component {
                 writeByteValue(errorMatrix[i][j][2], bitWriterInstance);
             }
         }
+        bitWriterInstance.CloseFile();
     }
 
     private void printMatrix(int[][][] matrix) {
         for (int i = 0; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
             for (int j = 0; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
-                System.out.print(matrix[i][j][0] + " ");
+                for (int k = 0; k < 3; k++) {
+                    System.out.print(matrix[i][j][k] + " ");
+                }
             }
             System.out.println();
         }
         System.out.println();
-
-        for (int i = 0; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
-            for (int j = 0; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
-                System.out.print(matrix[i][j][1] + " ");
-            }
-            System.out.println();
-        }
-        System.out.println();
-
-        for (int i = 0; i < Constant.PIXEL_NUMBER_IMAGE; i++) {
-            for (int j = 0; j < Constant.PIXEL_NUMBER_IMAGE; j++) {
-                System.out.print(matrix[i][j][2] + " ");
-            }
-            System.out.println();
-        }
     }
 
     public void paint(Graphics g) {
@@ -262,10 +249,17 @@ public class Coding extends Component {
         int[][][] predictionMatrix = getPredictionMatrix();
         int[][][] errorMatrix = getErrorMatrix(predictionMatrix);
 
-        printMatrix(errorMatrix);
+        // printMatrix(errorMatrix);
+
         writeCodedFile(outputFileName, errorMatrix);
 
-        g.drawImage(originalPicture, (Constant.ORIGINAL_IMAGE_X + Constant.IMAGE_WIDTH + 50),
+        Decodeing decodeing = new Decodeing(outputFileName);
+
+
+        // printMatrix(errorMatrixOut);
+        reconstructedPicture = decodeing.getDecryptedPicture(w, h);
+
+        g.drawImage(reconstructedPicture, (Constant.ORIGINAL_IMAGE_X + Constant.IMAGE_WIDTH + 50),
                 Constant.ORIGINAL_IMAGE_Y, Constant.IMAGE_WIDTH, Constant.IMAGE_HEIGHT, null);
 
     }
